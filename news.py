@@ -445,16 +445,18 @@ def cmd_fetch(args):
     feeds = data.get("feeds", [])
 
     if not feeds:
-        print(json.dumps({"fetched": 0, "inserted": 0}))
+        print(json.dumps({"fetched": 0, "inserted": 0, "failed": 0}))
         return
 
     all_stories = []
+    failed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(_fetch_one, feed): feed for feed in feeds}
         for future in as_completed(futures):
             feed = futures[future]
             stories, error = future.result()
             if error:
+                failed += 1
                 print(
                     f"[ERROR] fetch failed: {feed['url']} — {error}",
                     file=sys.stderr,
@@ -496,7 +498,7 @@ def cmd_fetch(args):
         finally:
             conn.close()
 
-    print(json.dumps({"fetched": len(all_stories), "inserted": inserted}))
+    print(json.dumps({"fetched": len(all_stories), "inserted": inserted, "failed": failed}))
 
 # ---------------------------------------------------------------------------
 # query
