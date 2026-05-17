@@ -12,20 +12,13 @@ description: >
 
 # News Skill
 
-## Setup (one-time)
+## How to Use
 
-```bash
-cd skills/news
-cp .env.example .env          # edit credentials if needed
-uv run news.py start          # starts PostgreSQL, waits until healthy
-uv run news.py init           # create schema (one-time only)
-uv run news.py fetch          # initial feed pull
-```
+All commands use `uv run news.py <subcommand>` from the skill directory (`/home/abolinger/Developer/news-fetcher`).
 
-`uv` manages all dependencies — no venv, no pip, no activation needed.
-PostgreSQL data persists in a named Docker volume across restarts.
+**The script auto-manages PostgreSQL lifecycle.** On any command that needs the database, it starts PostgreSQL if not running and initializes the schema if needed. You never need to call `start` or `init` manually.
 
-## Query News
+### Query News
 
 ```bash
 # All news, last 24 hours (default)
@@ -48,32 +41,30 @@ uv run news.py query --category world-news --days 3
 
 **Output:** JSON to stdout — `{ query, count, stories: [{title, url, source, categories, published, summary}] }`
 
-## User Invocation Patterns
+### Presenting Results
 
-| User says | Command |
-|---|---|
-| "get news on ai" | `query --category ai` |
-| "news about CUDA last 6 hours" | `query --keyword "CUDA" --hours 6` |
-| "latest tech headlines" | `query --category tech` |
-| "what happened in us-politics today" | `query --category us-politics --hours 24` |
-| "news on NVIDIA last 3 days" | `query --keyword "NVIDIA" --days 3` |
-| "get me everything from the last hour" | `query --hours 1` |
+Format results for the user as a readable list with title, source, and link. Don't dump raw JSON. Example:
 
-## Lifecycle
+```
+Here are the latest AI stories:
 
-```bash
-uv run news.py start   # bring up PostgreSQL, wait until healthy
-uv run news.py stop    # shut down PostgreSQL (data preserved in volume)
+1. **Story Title** — Source (2h ago)
+   Brief summary...
+   🔗 URL
+
+2. ...
 ```
 
-## Fetch & Maintain
+### Fetch & Maintain
+
+Run `fetch` before querying if results seem stale or the user asks for the latest:
 
 ```bash
-uv run news.py fetch    # pull all feeds → PostgreSQL (run via Hermes cron)
-uv run news.py purge    # delete stories older than 30 days (run via Hermes cron)
+uv run news.py fetch    # pull all feeds → PostgreSQL
+uv run news.py purge    # delete stories older than 30 days
 ```
 
-## Feed Registry CRUD
+### Feed Registry
 
 ```bash
 # List feeds
@@ -99,6 +90,13 @@ uv run news.py add-category-def sports
 uv run news.py remove-category-def sports   # blocked if any feeds use it
 ```
 
+### Lifecycle (manual override only)
+
+```bash
+uv run news.py start   # bring up PostgreSQL, wait until healthy
+uv run news.py stop    # shut down PostgreSQL (data preserved in volume)
+```
+
 ## Business Rules
 
 - A feed can belong to multiple categories
@@ -111,11 +109,13 @@ uv run news.py remove-category-def sports   # blocked if any feeds use it
 ## File Layout
 
 ```
-skills/news/
+news-fetcher/
   ├── SKILL.md
+  ├── feeds.yaml          # committed, source of truth
   ├── news.py
-  ├── feeds.yaml
-  ├── docker-compose.yml
-  ├── schema.sql
-  └── .env
+  ├── docker-compose.yml  # generated at runtime
+  ├── schema.sql          # generated at runtime
+  ├── .env                # generated at runtime
+  ├── .env.example        # generated at runtime
+  └── uv.lock
 ```

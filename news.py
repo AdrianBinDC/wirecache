@@ -798,12 +798,38 @@ def build_parser():
     return parser
 
 
+def _is_postgres_running():
+    """Check if PostgreSQL is already accepting connections."""
+    try:
+        conn = get_conn()
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+def _ensure_ready():
+    """Auto-start PostgreSQL and initialize schema if needed."""
+    if not _is_postgres_running():
+        cmd_start(None)
+
+    # One-time schema init
+    try:
+        conn = get_conn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM stories LIMIT 0")
+        conn.close()
+    except Exception:
+        cmd_init(None)
+
 def main():
     _bootstrap_files()          # materialise companion files if missing
     load_dotenv(SKILL_DIR / ".env")  # reload now that .env is guaranteed to exist
 
     parser = build_parser()
     args   = parser.parse_args()
+
+    # Commands that need the database auto-start PostgreSQL and init schema
+    _db_commands = {"init", "fetch", "query", "purge"}
 
     dispatch = {
         "start":              cmd_start,
@@ -821,6 +847,9 @@ def main():
         "add-category-def":   cmd_add_category_def,
         "remove-category-def": cmd_remove_category_def,
     }
+
+    if args.command in _db_commands and args.command != "start":
+        _ensure_ready()
 
     dispatch[args.command](args)
 
