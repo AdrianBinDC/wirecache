@@ -525,6 +525,8 @@ def cmd_query(args):
         WHERE  {where}
         ORDER  BY published DESC
     """
+    if args.limit:
+        sql += f" LIMIT {args.limit}"
 
     conn = get_conn()
     try:
@@ -548,7 +550,7 @@ def cmd_query(args):
 
     print(json.dumps(
         {
-            "query":   {"category": args.category, "keyword": args.keyword, "hours": hours},
+            "query":   {"category": args.category, "keyword": args.keyword, "hours": hours, "limit": args.limit},
             "count":   len(stories),
             "stories": stories,
         },
@@ -767,6 +769,7 @@ def build_parser():
     q = sub.add_parser("query", help="Query stories")
     q.add_argument("--category", help="Filter by category name")
     q.add_argument("--keyword",  help="Full-text keyword search")
+    q.add_argument("--limit",    type=int, help="Max number of stories to return")
     g = q.add_mutually_exclusive_group()
     g.add_argument("--hours", type=int, help="Stories from last N hours (default 24)")
     g.add_argument("--days",  type=int, help="Stories from last N days")
