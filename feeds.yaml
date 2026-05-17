@@ -160,3 +160,37 @@ feeds:
   url: https://www.youtube.com/feeds/videos.xml?user=macrumors
   categories:
   - mac
+- name: CNN World
+  url: http://rss.cnn.com/rss/edition_world.rss
+  categories:
+  - world-news
+- name: CNBC International
+  url: https://www.cnbc.com/id/100727362/device/rss/rss.html
+  categories:
+  - world-news
+- name: NDTV World News
+  url: http://feeds.feedburner.com/ndtvnews-world-news
+  categories:
+  - world-news
+- name: NYT World
+  url: https://rss.nytimes.com/services/xml/rss/nyt/World.xml
+  categories:
+  - world-news
+- name: Google News Top Stories
+  url: https://news.google.com/rss
+  categories:
+  - us-news
+  - world-news
+- name: Washington Post World
+  url: http://feeds.washingtonpost.com/rss/world
+  categories:
+  - world-news
+- name: r/worldnews
+  url: https://www.reddit.com/r/worldnews/.rss
+  categories:
+  - world-news
+- name: Yahoo News
+  url: https://www.yahoo.com/news/rss
+  categories:
+  - us-news
+  - world-news
