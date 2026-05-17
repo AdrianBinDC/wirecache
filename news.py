@@ -273,6 +273,14 @@ def _bootstrap_files():
         print(f"[INFO] created: {', '.join(created)}", file=sys.stderr)
 
 
+def _info(msg: str, data: dict | None = None):
+    """Print status JSON to stderr (never stdout)."""
+    if data:
+        print(json.dumps(data), file=sys.stderr)
+    else:
+        print(f"[INFO] {msg}", file=sys.stderr)
+
+
 
 HEALTH_TIMEOUT = 60     # max seconds to wait for postgres healthy
 HEALTH_INTERVAL = 2     # seconds between health checks
@@ -294,7 +302,7 @@ def cmd_start(args):
         print(f"[ERROR] docker compose up failed:\n{result.stderr}", file=sys.stderr)
         sys.exit(1)
 
-    print("[INFO] waiting for PostgreSQL to be healthy...", file=sys.stderr)
+    _info("waiting for PostgreSQL to be healthy...")
     deadline = time.time() + HEALTH_TIMEOUT
     while time.time() < deadline:
         check = _compose(["ps", "--format", "json"])
@@ -307,7 +315,7 @@ def cmd_start(args):
                        "postgres" in svc.get("Service", "").lower():
                         health = svc.get("Health", "")
                         if health == "healthy":
-                            print(json.dumps({"status": "started", "postgres": "healthy"}))
+                            _info("PostgreSQL is healthy", {"status": "started", "postgres": "healthy"})
                             return
                         elif health in ("unhealthy", ""):
                             pass  # still waiting
@@ -324,7 +332,7 @@ def cmd_stop(args):
     if result.returncode != 0:
         print(f"[ERROR] docker compose down failed:\n{result.stderr}", file=sys.stderr)
         sys.exit(1)
-    print(json.dumps({"status": "stopped"}))
+    _info(None, {"status": "stopped"})
 
 # ---------------------------------------------------------------------------
 # Database
@@ -375,7 +383,7 @@ def cmd_init(args):
                 cur.execute(schema)
     finally:
         conn.close()
-    print(json.dumps({"status": "initialized"}))
+    _info(None, {"status": "initialized"})
 
 # ---------------------------------------------------------------------------
 # fetch
