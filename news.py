@@ -281,6 +281,11 @@ def _info(msg: str, data: dict | None = None):
         print(f"[INFO] {msg}", file=sys.stderr)
 
 
+def _omit_none(d: dict) -> dict:
+    """Remove None values from a dict."""
+    return {k: v for k, v in d.items() if v is not None}
+
+
 
 HEALTH_TIMEOUT = 60     # max seconds to wait for postgres healthy
 HEALTH_INTERVAL = 2     # seconds between health checks
@@ -537,20 +542,20 @@ def cmd_query(args):
         conn.close()
 
     stories = [
-        {
+        _omit_none({
             "title":      row["title"],
             "url":        row["url"],
             "source":     row["source"],
             "categories": row["categories"],
             "published":  row["published"].isoformat() if row["published"] else None,
             "summary":    row["summary"],
-        }
+        })
         for row in rows
     ]
 
     print(json.dumps(
         {
-            "query":   {"category": args.category, "keyword": args.keyword, "hours": hours, "limit": args.limit},
+            "query":   _omit_none({"category": args.category, "keyword": args.keyword, "hours": hours, "limit": args.limit}),
             "count":   len(stories),
             "stories": stories,
         },
