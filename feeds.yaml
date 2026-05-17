@@ -194,3 +194,90 @@ feeds:
   categories:
   - us-news
   - world-news
+- name: Accidental Tech Podcast
+  url: https://atp.fm/rss
+  categories:
+  - tech
+  - mac
+- name: Analog(ue)
+  url: https://www.relay.fm/analogue/feed
+  categories:
+  - tech
+- name: CNET YouTube
+  url: https://www.youtube.com/feeds/videos.xml?user=CNETTV
+  categories:
+  - tech
+- name: CNET News
+  url: https://www.cnet.com/rss/news/
+  categories:
+  - tech
+- name: Clockwise
+  url: https://www.relay.fm/clockwise/feed
+  categories:
+  - tech
+- name: Gizmodo
+  url: https://gizmodo.com/rss
+  categories:
+  - tech
+- name: Lifehacker
+  url: https://lifehacker.com/rss
+  categories:
+  - tech
+- name: Linus Tech Tips
+  url: https://www.youtube.com/feeds/videos.xml?user=LinusTechTips
+  categories:
+  - tech
+- name: MKBHD
+  url: https://www.youtube.com/feeds/videos.xml?user=marquesbrownlee
+  categories:
+  - tech
+- name: Mashable
+  url: http://feeds.mashable.com/Mashable
+  categories:
+  - tech
+- name: ReadWrite
+  url: https://readwrite.com/feed/
+  categories:
+  - tech
+  - ai
+- name: Reply All
+  url: https://feeds.megaphone.fm/replyall
+  categories:
+  - tech
+- name: Rocket
+  url: https://www.relay.fm/rocket/feed
+  categories:
+  - tech
+- name: Slashdot
+  url: http://rss.slashdot.org/Slashdot/slashdotMain
+  categories:
+  - tech
+- name: Stratechery
+  url: http://stratechery.com/feed/
+  categories:
+  - tech
+  - ai
+- name: The Keyword (Google)
+  url: https://www.blog.google/rss/
+  categories:
+  - tech
+- name: The Next Web
+  url: https://thenextweb.com/feed/
+  categories:
+  - tech
+- name: The Vergecast
+  url: https://feeds.megaphone.fm/vergecast
+  categories:
+  - tech
+- name: This Week in Tech
+  url: https://feeds.twit.tv/twit.xml
+  categories:
+  - tech
+- name: Unbox Therapy
+  url: https://www.youtube.com/feeds/videos.xml?user=unboxtherapy
+  categories:
+  - tech
+- name: Engadget
+  url: https://www.engadget.com/rss.xml
+  categories:
+  - tech
