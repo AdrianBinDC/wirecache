@@ -263,10 +263,11 @@ def _bootstrap_files():
             path.write_text(content)
             created.append(filename)
 
-    # Create .env from .env.example if neither exists
-    env_path = SKILL_DIR / ".env"
-    if not env_path.exists():
-        env_path.write_text(_ENV_EXAMPLE)
+    # Create .env from .env.example if .env doesn't exist
+    env_path    = SKILL_DIR / ".env"
+    env_example = SKILL_DIR / ".env.example"
+    if not env_path.exists() and env_example.exists():
+        env_path.write_text(env_example.read_text())
         created.append(".env")
 
     if created:

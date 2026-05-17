@@ -189,12 +189,12 @@ uv run ${HERMES_SKILL_DIR}/scripts/news.py stop
 ```
 news-fetcher/
   ├── SKILL.md
+  ├── .env.example        # committed, template for .env
   ├── feeds.yaml          # committed, source of truth
   ├── scripts/
   │   └── news.py         # main script
   ├── docker-compose.yml  # generated at runtime
   ├── schema.sql          # generated at runtime
-  ├── .env                # generated at runtime
-  ├── .env.example        # generated at runtime
+  ├── .env                # local only, copied from .env.example
   └── uv.lock
 ```
