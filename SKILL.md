@@ -45,6 +45,7 @@ Fetch, store, and query RSS news stories from a curated feed registry backed by 
 | Query all recent news | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query` |
 | Query by category | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category ai` |
 | Search by keyword | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query --keyword "CUDA"` |
+| Fetch + query in one call | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query --fetch-first` |
 | Fetch latest stories | `uv run ${HERMES_SKILL_DIR}/scripts/news.py fetch` |
 | List feeds | `uv run ${HERMES_SKILL_DIR}/scripts/news.py list-feeds` |
 | Add a feed | `uv run ${HERMES_SKILL_DIR}/scripts/news.py add-feed --url URL --name NAME --categories cat1,cat2` |
@@ -54,17 +55,31 @@ Fetch, store, and query RSS news stories from a curated feed registry backed by 
 
 ## Procedure
 
-### 1. Fetch Latest Stories (if needed)
+### 1. Self-Bootstrap (first invocation only)
 
-If the user asks for "latest" or "today's" news, fetch first:
+On the **first time** the news skill is used in a session, ensure the background fetch cron exists:
+
+1. List existing cron jobs: `cronjob action=list`
+2. Look for a job named `news-fetch`. If it does NOT exist, create it:
+
+   Use the cronjob tool with:
+   - `action=create`
+   - `name="news-fetch"`
+   - `schedule="15m"`
+   - `script="${HERMES_SKILL_DIR}/scripts/fetch.sh"`
+   - `no_agent=true`
+
+   This runs fetch every 30 minutes in the background. The script is silent unless new stories arrive or an error occurs. After this, the DB stays fresh automatically.
+
+3. **Then run one initial fetch** to populate the DB before the first query:
 
 ```bash
 uv run ${HERMES_SKILL_DIR}/scripts/news.py fetch
 ```
 
-Output: `{"fetched": 800, "inserted": 796, "failed": 0}`
-
 ### 2. Query News
+
+On subsequent invocations (cron already running), just query directly — no fetch needed:
 
 ```bash
 # All news, last 24 hours (default)
@@ -89,6 +104,9 @@ uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category world-news --days 3
 
 # Limit results
 uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category tech --limit 5
+
+# Fetch + query in one call (when you know DB might be stale)
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --fetch-first --category ai --limit 5
 ```
 
 **Output:** JSON to stdout — `{ query, count, stories: [{title, url, source, categories, published, summary}] }`
@@ -169,11 +187,11 @@ uv run ${HERMES_SKILL_DIR}/scripts/news.py stop
 
 - **Docker not installed:** The script will fail with a subprocess error. Check `docker --version` first.
 - **Port 5432 in use:** If another PostgreSQL is running, change `POSTGRES_PORT` in `.env`.
-- **No stories returned:** Fetch may be needed first. Run `fetch` then `query` again.
 - **Feed fetch failures:** Some feeds may be unreachable. Check `"failed"` count in fetch output.
 - **Slow startup on first run:** Docker pulls the PostgreSQL image (~100MB). Subsequent starts are instant.
 - **Large result sets:** Always use `--limit` when the agent needs a manageable number of results.
 - **HTML entities in summaries:** Some feeds include `&#8230;` etc. in summaries — this is expected and harmless.
+- **Cron job must exist for fresh data:** The background `news-fetch` cron keeps the DB current. If it was removed or never created, the agent should recreate it on first invocation (see self-bootstrap above).
 
 ## Business Rules
 
@@ -188,13 +206,14 @@ uv run ${HERMES_SKILL_DIR}/scripts/news.py stop
 
 ```
 news-fetcher/
-  ├── SKILL.md
-  ├── .env.example        # committed, template for .env
-  ├── feeds.yaml          # committed, source of truth
+  ├── SKILL.md              # this file
+  ├── .env.example          # template for .env
+  ├── feeds.yaml            # feed registry — source of truth
   ├── scripts/
-  │   └── news.py         # main script
-  ├── docker-compose.yml  # generated at runtime
-  ├── schema.sql          # generated at runtime
-  ├── .env                # local only, copied from .env.example
-  └── uv.lock
+  │   ├── news.py           # main script (inline deps via uv)
+  │   └── fetch.sh          # wrapper for cronjob (silent background fetch)
+  ├── docker-compose.yml    # generated at runtime by _bootstrap_files()
+  └── schema.sql            # generated at runtime by _bootstrap_files()
 ```
+
+`.env` and `.gitignore` are local-only and not committed.

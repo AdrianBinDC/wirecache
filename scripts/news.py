@@ -779,10 +779,11 @@ def build_parser():
     sub.add_parser("purge", help="Delete stories older than 30 days")
 
     q = sub.add_parser("query", help="Query stories")
-    q.add_argument("--category", help="Filter by category name")
-    q.add_argument("--keyword",  help="Full-text keyword search")
-    q.add_argument("--source",   help="Filter by source name")
-    q.add_argument("--limit",    type=int, help="Max number of stories to return")
+    q.add_argument("--category",   help="Filter by category name")
+    q.add_argument("--keyword",    help="Full-text keyword search")
+    q.add_argument("--source",     help="Filter by source name")
+    q.add_argument("--limit",      type=int, help="Max number of stories to return")
+    q.add_argument("--fetch-first", action="store_true", help="Run fetch before querying")
     g = q.add_mutually_exclusive_group()
     g.add_argument("--hours", type=int, help="Stories from last N hours (default 24)")
     g.add_argument("--days",  type=int, help="Stories from last N days")
@@ -874,6 +875,10 @@ def main():
 
     if args.command in _db_commands and args.command != "start":
         _ensure_ready()
+
+    # --fetch-first: run fetch before query
+    if args.command == "query" and args.fetch_first:
+        cmd_fetch(None)
 
     dispatch[args.command](args)
 
