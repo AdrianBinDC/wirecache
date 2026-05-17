@@ -58,7 +58,7 @@ FEEDS_YAML = SKILL_DIR / "feeds.yaml"
 FETCH_TIMEOUT = 15      # seconds per feed
 MAX_WORKERS   = 20      # parallel feed fetches
 PURGE_DAYS    = 30      # stories older than this are deleted
-MAX_SUMMARY   = 2000    # max summary chars stored
+MAX_SUMMARY   = 500     # max summary chars stored
 
 # ---------------------------------------------------------------------------
 # Embedded companion files — written to skill directory on first run
