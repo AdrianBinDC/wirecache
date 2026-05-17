@@ -52,7 +52,7 @@ from dotenv import load_dotenv
 # Paths & config
 # ---------------------------------------------------------------------------
 
-SKILL_DIR  = Path(__file__).parent
+SKILL_DIR  = Path(__file__).parent.parent
 FEEDS_YAML = SKILL_DIR / "feeds.yaml"
 
 FETCH_TIMEOUT = 15      # seconds per feed

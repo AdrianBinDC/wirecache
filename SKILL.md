@@ -8,42 +8,94 @@ description: >
   "latest us-politics stories", "news about CUDA last 3 days". Also handles feed registry CRUD:
   adding, removing, updating feeds and categories. Use when user says "add feed", "remove feed",
   "list feeds", "what feeds do we have", or "create category".
+version: 1.0.0
+author: Hermes Agent
+license: MIT
+platforms: [linux, macos]
+metadata:
+  hermes:
+    tags: [News, RSS, Aggregator, Research, Headlines]
+    requires_toolsets: [terminal]
+    config:
+      - key: news.fetch_before_query
+        description: "Auto-fetch latest stories before each query"
+        default: "false"
+        prompt: "Fetch latest stories before every query?"
 ---
 
 # News Skill
 
-## How to Use
+Fetch, store, and query RSS news stories from a curated feed registry backed by PostgreSQL.
 
-All commands use `uv run news.py <subcommand>` from the skill directory (`/home/abolinger/Developer/news-fetcher`).
+## When to Use
 
-**The script auto-manages PostgreSQL lifecycle.** On any command that needs the database, it starts PostgreSQL if not running and initializes the schema if needed. You never need to call `start` or `init` manually.
+- User asks for news, headlines, or stories on a topic, category, or keyword
+- User wants to manage news feeds (add, remove, update, list)
+- User asks what's happening in a particular domain (tech, politics, AI, etc.)
 
-### Query News
+## Prerequisites
+
+- **Docker** — PostgreSQL runs in a Docker container (auto-managed)
+- **uv** — manages Python dependencies
+
+## Quick Reference
+
+| Action | Command |
+|--------|---------|
+| Query all recent news | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query` |
+| Query by category | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category ai` |
+| Search by keyword | `uv run ${HERMES_SKILL_DIR}/scripts/news.py query --keyword "CUDA"` |
+| Fetch latest stories | `uv run ${HERMES_SKILL_DIR}/scripts/news.py fetch` |
+| List feeds | `uv run ${HERMES_SKILL_DIR}/scripts/news.py list-feeds` |
+| Add a feed | `uv run ${HERMES_SKILL_DIR}/scripts/news.py add-feed --url URL --name NAME --categories cat1,cat2` |
+| Purge old stories | `uv run ${HERMES_SKILL_DIR}/scripts/news.py purge` |
+
+**PostgreSQL lifecycle is auto-managed.** The script starts PostgreSQL and initializes the schema automatically when needed. You never call `start` or `init` manually.
+
+## Procedure
+
+### 1. Fetch Latest Stories (if needed)
+
+If the user asks for "latest" or "today's" news, fetch first:
+
+```bash
+uv run ${HERMES_SKILL_DIR}/scripts/news.py fetch
+```
+
+Output: `{"fetched": 800, "inserted": 796, "failed": 0}`
+
+### 2. Query News
 
 ```bash
 # All news, last 24 hours (default)
-uv run news.py query
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query
 
 # By category
-uv run news.py query --category ai
-uv run news.py query --category tech
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category ai
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category tech
 
 # By keyword (full-text search)
-uv run news.py query --keyword "CUDA memory"
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --keyword "CUDA memory"
 
-# By category + keyword
-uv run news.py query --category ai --keyword "NVIDIA"
+# Category + keyword
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category ai --keyword "NVIDIA"
+
+# By source
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --source "The Verge"
 
 # Custom time window
-uv run news.py query --category us-news --hours 6
-uv run news.py query --category world-news --days 3
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category us-news --hours 6
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category world-news --days 3
+
+# Limit results
+uv run ${HERMES_SKILL_DIR}/scripts/news.py query --category tech --limit 5
 ```
 
 **Output:** JSON to stdout — `{ query, count, stories: [{title, url, source, categories, published, summary}] }`
 
-### Presenting Results
+### 3. Present Results
 
-Format results for the user as a readable list with title, source, and link. Don't dump raw JSON. Example:
+Format results for the user as a readable list. Do not dump raw JSON.
 
 ```
 Here are the latest AI stories:
@@ -55,47 +107,73 @@ Here are the latest AI stories:
 2. ...
 ```
 
-### Fetch & Maintain
-
-Run `fetch` before querying if results seem stale or the user asks for the latest:
+### 4. Feed Registry Management
 
 ```bash
-uv run news.py fetch    # pull all feeds → PostgreSQL
-uv run news.py purge    # delete stories older than 30 days
-```
+# List all feeds
+uv run ${HERMES_SKILL_DIR}/scripts/news.py list-feeds
 
-### Feed Registry
-
-```bash
-# List feeds
-uv run news.py list-feeds
-uv run news.py list-feeds --category ai
+# List feeds by category
+uv run ${HERMES_SKILL_DIR}/scripts/news.py list-feeds --category ai
 
 # Add a feed (creates new category if needed)
-uv run news.py add-feed --url https://example.com/feed --name "Example" --categories tech,ai
+uv run ${HERMES_SKILL_DIR}/scripts/news.py add-feed --url https://example.com/feed --name "Example" --categories tech,ai
 
 # Remove a feed (blocked if it would empty a category)
-uv run news.py remove-feed --url https://example.com/feed
+uv run ${HERMES_SKILL_DIR}/scripts/news.py remove-feed --url https://example.com/feed
 
 # Update a feed
-uv run news.py update-feed --url https://old.com/feed --name "New Name"
-uv run news.py update-feed --url https://old.com/feed --new-url https://new.com/feed
+uv run ${HERMES_SKILL_DIR}/scripts/news.py update-feed --url https://old.com/feed --name "New Name"
+uv run ${HERMES_SKILL_DIR}/scripts/news.py update-feed --url https://old.com/feed --new-url https://new.com/feed
 
 # Add/remove a category from a feed
-uv run news.py add-category --url https://example.com/feed --category world-news
-uv run news.py remove-category --url https://example.com/feed --category tech
+uv run ${HERMES_SKILL_DIR}/scripts/news.py add-category --url https://example.com/feed --category world-news
+uv run ${HERMES_SKILL_DIR}/scripts/news.py remove-category --url https://example.com/feed --category tech
 
 # Manage category definitions
-uv run news.py add-category-def sports
-uv run news.py remove-category-def sports   # blocked if any feeds use it
+uv run ${HERMES_SKILL_DIR}/scripts/news.py add-category-def sports
+uv run ${HERMES_SKILL_DIR}/scripts/news.py remove-category-def sports   # blocked if any feeds use it
 ```
 
-### Lifecycle (manual override only)
+### 5. Maintenance
 
 ```bash
-uv run news.py start   # bring up PostgreSQL, wait until healthy
-uv run news.py stop    # shut down PostgreSQL (data preserved in volume)
+# Purge stories older than 30 days
+uv run ${HERMES_SKILL_DIR}/scripts/news.py purge
+
+# Manual lifecycle (rare — only if needed)
+uv run ${HERMES_SKILL_DIR}/scripts/news.py start
+uv run ${HERMES_SKILL_DIR}/scripts/news.py stop
 ```
+
+## Available Categories
+
+| Category | Description |
+|----------|-------------|
+| `us-news` | US general news |
+| `tech` | Technology |
+| `mac` | Apple/Mac |
+| `ai` | Artificial Intelligence |
+| `world-news` | International news |
+| `us-politics` | US politics |
+| `world-politics` | International politics |
+
+## Verification
+
+- **Query worked:** stdout is valid JSON with `"count" > 0`
+- **Fetch worked:** output shows `"inserted" > 0` or `"inserted": 0` (if already current)
+- **Feed operations:** output includes `"status": "added"`, `"removed"`, `"updated"`
+- **Errors:** always go to stderr; stdout is always valid JSON
+
+## Pitfalls
+
+- **Docker not installed:** The script will fail with a subprocess error. Check `docker --version` first.
+- **Port 5432 in use:** If another PostgreSQL is running, change `POSTGRES_PORT` in `.env`.
+- **No stories returned:** Fetch may be needed first. Run `fetch` then `query` again.
+- **Feed fetch failures:** Some feeds may be unreachable. Check `"failed"` count in fetch output.
+- **Slow startup on first run:** Docker pulls the PostgreSQL image (~100MB). Subsequent starts are instant.
+- **Large result sets:** Always use `--limit` when the agent needs a manageable number of results.
+- **HTML entities in summaries:** Some feeds include `&#8230;` etc. in summaries — this is expected and harmless.
 
 ## Business Rules
 
@@ -112,7 +190,8 @@ uv run news.py stop    # shut down PostgreSQL (data preserved in volume)
 news-fetcher/
   ├── SKILL.md
   ├── feeds.yaml          # committed, source of truth
-  ├── news.py
+  ├── scripts/
+  │   └── news.py         # main script
   ├── docker-compose.yml  # generated at runtime
   ├── schema.sql          # generated at runtime
   ├── .env                # generated at runtime
