@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,6 +12,8 @@ from datetime import datetime, timezone
 import feedparser
 
 from wirecache.config import FETCH_TIMEOUT, MAX_SUMMARY, MAX_WORKERS, USER_AGENT
+
+log = logging.getLogger("wirecache.fetch")
 
 
 @dataclass
@@ -90,15 +93,26 @@ def fetch_all(feeds: list[dict], max_workers: int = MAX_WORKERS) -> FetchResult:
     result = FetchResult()
 
     if not feeds:
+        log.warning("no feeds in registry; nothing to fetch")
         return result
+
+    log.info("fetching %d feeds (workers=%d, timeout=%ss)", len(feeds), max_workers, FETCH_TIMEOUT)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_fetch_one, feed): feed for feed in feeds}
         for future in as_completed(futures):
+            feed = futures[future]
             stories, failure = future.result()
             if failure:
                 result.failures.append(failure)
+                log.warning("feed failed name=%s url=%s error=%s", failure.name, failure.url, failure.error)
             else:
                 result.stories.extend(stories)
+                log.debug("feed ok name=%s stories=%d", feed.get("name"), len(stories))
 
+    log.info(
+        "fetch complete stories=%d failures=%d",
+        result.fetched,
+        result.failed,
+    )
     return result

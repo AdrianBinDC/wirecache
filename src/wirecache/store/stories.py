@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -10,6 +11,8 @@ import psycopg2
 import psycopg2.extras
 
 from wirecache.config import SCHEMA_SQL, DEFAULT_PURGE_DAYS, pg_settings
+
+log = logging.getLogger("wirecache.store")
 
 
 @dataclass
@@ -130,6 +133,7 @@ class StoryStore:
             return 0
 
         inserted = 0
+        errors = 0
         conn = self.connect()
         try:
             with conn:
@@ -154,14 +158,17 @@ class StoryStore:
                             )
                             if cur.rowcount:
                                 inserted += 1
-                        except Exception:
-                            continue
+                        except Exception as exc:
+                            errors += 1
+                            log.warning("insert failed url=%s error=%s", story.get("url"), exc)
         finally:
             conn.close()
+        log.info("inserted %d of %d stories (%d insert errors)", inserted, len(stories), errors)
         return inserted
 
     def query(self, filt: QueryFilter) -> list[dict]:
         sql, params = filt.build_sql()
+        log.debug("query meta=%s", filt.meta())
         conn = self.connect()
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -169,6 +176,7 @@ class StoryStore:
                 rows = cur.fetchall()
         finally:
             conn.close()
+        log.info("query returned %d stories", len(rows))
 
         stories = []
         for row in rows:
@@ -193,6 +201,7 @@ class StoryStore:
                     deleted = cur.rowcount
         finally:
             conn.close()
+        log.info("purged %d stories older than %d days (cutoff=%s)", deleted, days, cutoff.isoformat())
         return {"purged": deleted, "cutoff": cutoff.isoformat(), "days": days}
 
     def stats(self) -> dict:

@@ -82,6 +82,18 @@ CLI  →  feeds.registry / feeds.opml
 
 See [SKILL.md](SKILL.md) for agent procedures. Install by placing this directory where Hermes loads skills, then call `uv run wirecache …`.
 
+## Logging
+
+Stdout is reserved for command results (JSON / text / voice). Logs go to **stderr** and, by default, `data/wirecache.log`.
+
+```bash
+uv run wirecache -v fetch          # DEBUG
+uv run wirecache -q status         # warnings/errors only
+uv run wirecache --log-file '' query --category ai   # no log file
+```
+
+Env: `WIRECACHE_LOG_LEVEL`, `WIRECACHE_LOG_FILE` (see `.env.example`).
+
 ## Development
 
 ```bash
