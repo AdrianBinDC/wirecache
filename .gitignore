@@ -12,7 +12,10 @@ venv/
 
 # uv
 .uv/
+uv.lock
 
-# Generated at runtime
-docker-compose.yml
-schema.sql
+# User-local registry (starter is feeds.example.yaml)
+feeds.yaml
+
+# Runtime
+data/

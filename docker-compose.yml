@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: wirecache_db
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB:-news}
+      POSTGRES_USER:     ${POSTGRES_USER:-news}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-news}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - wirecache_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-news} -d ${POSTGRES_DB:-news}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  wirecache_db_data:
+    driver: local
