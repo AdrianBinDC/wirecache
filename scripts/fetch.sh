@@ -3,17 +3,21 @@
 # Runs fetch silently; only outputs on errors.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILL_DIR="$(dirname "$SCRIPT_DIR")"
+# Cron environments may lack ~/.local/bin — source profile if possible
+if [ -f /home/abolinger/.bashrc ]; then
+    source /home/abolinger/.bashrc 2>/dev/null || true
+fi
+
+SCRIPT_DIR="/home/abolinger/Developer/news-fetcher/scripts"
 
 # Run fetch, capture stdout
-output=$(uv run "$SCRIPT_DIR/news.py" fetch 2>/dev/null) || {
-    echo "news-fetch cron: fetch failed"
+output=$(/home/abolinger/.local/bin/uv run "$SCRIPT_DIR/news.py" fetch 2>/dev/null) || {
+    echo "news-fetch cron: fetch failed" >&2
     exit 1
 }
 
 # Extract inserted count
-inserted=$(echo "$output" | python3 -c "import sys,json; print(json.load(sys.stdin).get('inserted', 0))" 2>/dev/null || echo 0)
+inserted=$(echo "$output" | /usr/bin/python3 -c "import sys,json; print(json.load(sys.stdin).get('inserted', 0))" 2>/dev/null || echo 0)
 
 # Only announce if there are new stories (reduces noise)
 if [ "$inserted" -gt 0 ]; then
