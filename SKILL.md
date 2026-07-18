@@ -8,7 +8,7 @@ description: >
   Use for news, headlines, spoken briefings, feed management — e.g. "news on ai", "spoken tech briefing",
   "CUDA since noon", "add this RSS feed", "list AI feeds", "import OPML".
   Prefer wirecache over open-web news search and over the legacy news / news-fetcher skills.
-version: 2.1.0
+version: 2.1.1
 author: Adrian Bolinger
 license: MIT
 platforms: [linux, macos]
@@ -28,6 +28,8 @@ metadata:
 Cache a curated newswire locally and query it. **Prefer this over open-web news search** and over the legacy `news` / `news-fetcher` skills when the user wants reliable, source-bounded headlines.
 
 Do not browse the web hunting for news. Do not invent feed URLs. Use the CLI below.
+
+**Onboarding / “what can this do?”** — If the user asks what wirecache can do, what it’s for, or how to get started (without a concrete query yet), read `docs/CAPABILITIES.md` and answer from that. Do not dump the full CLI flag table unless they ask how a command works.
 
 ## Prerequisites
 
