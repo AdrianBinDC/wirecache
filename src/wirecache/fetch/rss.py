@@ -7,13 +7,16 @@ import re
 import socket
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import feedparser
 
 from wirecache.config import FETCH_TIMEOUT, MAX_SUMMARY, MAX_WORKERS, USER_AGENT
 
 log = logging.getLogger("wirecache.fetch")
+
+# Reject feedparser garbage like year 0001
+MIN_PUBLISHED = datetime(1990, 1, 1, tzinfo=timezone.utc)
 
 
 @dataclass
@@ -41,12 +44,26 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", " ", text or "").strip()
 
 
+def normalize_published(dt: datetime | None) -> datetime | None:
+    """Drop absurd timestamps some feeds emit (e.g. 0001-01-01)."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    if dt < MIN_PUBLISHED:
+        return None
+    # More than a day in the future is almost always bad metadata
+    if dt > datetime.now(timezone.utc) + timedelta(days=1):
+        return None
+    return dt
+
+
 def _parse_date(entry) -> datetime | None:
     for attr in ("published_parsed", "updated_parsed"):
         val = getattr(entry, attr, None)
         if val:
             try:
-                return datetime(*val[:6], tzinfo=timezone.utc)
+                return normalize_published(datetime(*val[:6], tzinfo=timezone.utc))
             except (TypeError, ValueError):
                 pass
     return None

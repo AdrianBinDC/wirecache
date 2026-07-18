@@ -11,6 +11,7 @@ import psycopg2
 import psycopg2.extras
 
 from wirecache.config import SCHEMA_SQL, DEFAULT_PURGE_DAYS, pg_settings
+from wirecache.fetch.rss import MIN_PUBLISHED
 
 log = logging.getLogger("wirecache.store")
 
@@ -212,11 +213,14 @@ class StoryStore:
                     """
                     SELECT
                         COUNT(*) AS story_count,
-                        MIN(published) AS oldest_published,
-                        MAX(published) AS newest_published,
+                        MIN(published) FILTER (WHERE published >= %s)
+                            AS oldest_published,
+                        MAX(published) FILTER (WHERE published >= %s)
+                            AS newest_published,
                         MAX(fetched_at) AS last_fetched_at
                     FROM stories
-                    """
+                    """,
+                    (MIN_PUBLISHED, MIN_PUBLISHED),
                 )
                 row = cur.fetchone() or {}
         finally:
