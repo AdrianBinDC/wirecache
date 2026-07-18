@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
-import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+log = logging.getLogger("wirecache.config")
 
 
 def _resolve_root() -> Path:
@@ -63,7 +65,7 @@ def bootstrap() -> list[str]:
     DATA_DIR.mkdir(exist_ok=True)
 
     if created:
-        print(f"[INFO] created: {', '.join(created)}", file=sys.stderr)
+        log.info("created: %s", ", ".join(created))
 
     return created
 

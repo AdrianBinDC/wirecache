@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,8 +14,11 @@ from wirecache.config import LAST_FETCH_PATH, DEFAULT_PURGE_DAYS, bootstrap, loa
 from wirecache.feeds.opml import import_opml
 from wirecache.feeds.registry import Registry, RegistryError
 from wirecache.fetch.rss import fetch_all
+from wirecache.logutil import setup_logging
 from wirecache.output import FORMATS, render
 from wirecache.store.stories import QueryFilter, StoryStore
+
+log = logging.getLogger("wirecache.cli")
 
 
 def _print_json(data: dict, *, exit_code: int = 0) -> None:
@@ -66,13 +70,8 @@ def cmd_init(_args) -> None:
 def cmd_fetch(_args) -> None:
     registry = Registry()
     feeds = registry.load().get("feeds", [])
+    log.info("cmd=fetch feeds=%d", len(feeds))
     result = fetch_all(feeds)
-
-    for failure in result.failures:
-        print(
-            f"[ERROR] fetch failed: {failure.url} — {failure.error}",
-            file=sys.stderr,
-        )
 
     store = StoryStore()
     inserted = store.insert_many(result.stories)
@@ -87,6 +86,12 @@ def cmd_fetch(_args) -> None:
         "finished_at": datetime.now(timezone.utc).isoformat(),
     }
     _write_last_fetch(payload)
+    log.info(
+        "cmd=fetch done fetched=%d inserted=%d failed=%d",
+        payload["fetched"],
+        inserted,
+        payload["failed"],
+    )
     print(json.dumps({k: payload[k] for k in ("fetched", "inserted", "failed", "failures")}))
 
 
@@ -103,6 +108,7 @@ def cmd_query(args) -> None:
         days=args.days,
         limit=args.limit,
     )
+    log.info("cmd=query format=%s meta=%s", args.format, filt.meta())
 
     store = StoryStore()
     stories = store.query(filt)
@@ -116,11 +122,13 @@ def cmd_query(args) -> None:
 
 
 def cmd_purge(args) -> None:
+    log.info("cmd=purge days=%d", args.days)
     store = StoryStore()
     _print_json(store.purge(days=args.days))
 
 
 def cmd_status(_args) -> None:
+    log.info("cmd=status")
     registry = Registry()
     data = registry.load()
     store = StoryStore()
@@ -152,15 +160,24 @@ def cmd_status(_args) -> None:
     else:
         status["last_fetch"] = None
 
+    log.info(
+        "status postgres=%s stories=%s feeds=%d",
+        status["postgres"],
+        status.get("story_count"),
+        status["feed_count"],
+    )
     _print_json(status)
 
 
 def cmd_import_opml(args) -> None:
     path = Path(args.path)
     if not path.exists():
+        log.error("OPML not found: %s", path)
         _print_json({"error": f"File not found: {path}"}, exit_code=1)
+    log.info("cmd=import-opml path=%s default_category=%s", path, args.category)
     registry = Registry()
     result = import_opml(path, registry, default_category=args.category)
+    log.info("import-opml result=%s", result)
     _print_json(result)
 
 
@@ -221,6 +238,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="wirecache",
         description="Cache a curated newswire locally and query it.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Debug logging to stderr (and log file)",
+    )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Only warnings and errors",
+    )
+    parser.add_argument(
+        "--log-file",
+        metavar="PATH",
+        help="Log file path (default: data/wirecache.log; empty string disables)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -301,11 +335,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> None:
+    setup_logging()  # early defaults so bootstrap can log
     bootstrap()
     load_env()
 
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    setup_logging(verbose=args.verbose, quiet=args.quiet, log_file=args.log_file)
+
+    log.debug("command=%s", args.command)
 
     db_commands = {"init", "fetch", "query", "purge", "status"}
     store = StoryStore()
@@ -334,7 +373,11 @@ def main(argv: list[str] | None = None) -> None:
         "add-category-def": cmd_add_category_def,
         "remove-category-def": cmd_remove_category_def,
     }
-    dispatch[args.command](args)
+    try:
+        dispatch[args.command](args)
+    except Exception:
+        log.exception("command failed: %s", args.command)
+        raise
 
 
 if __name__ == "__main__":
